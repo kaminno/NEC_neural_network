@@ -12,7 +12,6 @@ class LinearLayer():
         @X, float[]: vector of (n_neurons)
         return: f(X), in this case f(X)=X
         """
-        # print(f"Linear")
         return X
     
     def derivative(self, h):
@@ -35,7 +34,6 @@ class ReLULayer():
         @X, float[]: vector of (n_neurons)
         return: ReLU(X)
         """
-        # print(f"ReLU")
         return np.maximum(0, X)
     
     def derivative(self, h):
