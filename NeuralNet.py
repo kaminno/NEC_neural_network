@@ -8,7 +8,7 @@ from sklearn.metrics import mean_absolute_percentage_error
 
 
 class NeuralNet:
-	def __init__(self, layers, epochs, learning_rate, momentum, fact, validation):
+	def __init__(self, layers, epochs, learning_rate, momentum, fact, validation, debug=True):
 		"""
 		params:
 		@layers, int[]: array (length == number of layers) of ints (numbers of neurons in each layer)
@@ -19,6 +19,7 @@ class NeuralNet:
 		@fact, stirng: name of activation function, one for all layers. Choose from []"linear", "relu", "sigmoid", "tanh"]
 		@validation, double from [0, 1]: 
 		"""
+		self.debug = debug							# if True, allow print during training
 		self.L = len(layers)						# number of layers
 		self.n = layers.copy()						# an array with the number of units in each layer (including the input and output layers)
 		self.epochs = epochs						# number of training epochs
@@ -46,7 +47,7 @@ class NeuralNet:
 		@y, float[]: input labels of size (n_samples)
 		"""
 		
-		print(f"\n========== MODEL TRAIN METHOD ==========\n")
+		print(f"Neural network starts training")
 
 		# split the given data to train and validation
 		X, X_valid, y, y_valid = train_test_split(X, y, test_size=self.validation, random_state=42)
@@ -87,7 +88,7 @@ class NeuralNet:
 		loss_function = LossFunctions.MSELoss()
 
 		for epoch in range(self.epochs):
-			print(f"Epoch {epoch} / {self.epochs}", end="\t")
+			if self.debug: print(f"Epoch {epoch} / {self.epochs}", end="\t")
 			for sample in range(n_samples):
 				self.xi[0] = activation_function.forward(X[sample])
 
@@ -121,8 +122,6 @@ class NeuralNet:
 			# try the current model on train and validation data
 			train_loss = 0
 			valid_loss = 0
-			train_correct = 0
-			valid_correct = 0
 			train_predicted = []
 			valid_predicted = []
 
@@ -152,8 +151,14 @@ class NeuralNet:
 				valid_loss += loss_function.forward(z_v[-1], y_valid[sample])
 			self.losses[epoch, 1] = valid_loss / v_samples
 
-			print(f"train loss: {self.losses[epoch, 0]:.3f}\tvalidation loss: {self.losses[epoch, 1]:.3f}\tMSE: {mean_squared_error(y_valid, valid_predicted):.3f}\tMAE: {mean_absolute_error(y_valid, valid_predicted):.3f}\tMAPE: {mean_absolute_percentage_error(y_valid, valid_predicted):.3f}")
-		
+			train_predicted = np.array(train_predicted)
+			valid_predicted = np.array(valid_predicted)
+			if self.debug:
+				print(f"train loss: {self.losses[epoch, 0]:.3f}\tvalidation loss: {self.losses[epoch, 1]:.3f}")
+				print(f"\tTrain: MSE: {mean_squared_error(y, train_predicted):.3f}\tMAE: {mean_absolute_error(y, train_predicted):.3f}\tMAPE: {mean_absolute_percentage_error(y, train_predicted):.3f}")
+				print(f"\tValidation: MSE: {mean_squared_error(y_valid, valid_predicted):.3f}\tMAE: {mean_absolute_error(y_valid, valid_predicted):.3f}\tMAPE: {mean_absolute_percentage_error(y_valid, valid_predicted):.3f}")
+		print(f"Neural network ends training")
+
 	def predict(self, X):
 		n_samples, n_features = X.shape
 		
