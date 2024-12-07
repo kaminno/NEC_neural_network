@@ -2,6 +2,10 @@ import numpy as np
 import Layers
 import LossFunctions
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error
+
 
 class NeuralNet:
 	def __init__(self, layers, epochs, learning_rate, momentum, fact, validation):
@@ -15,24 +19,24 @@ class NeuralNet:
 		@fact, stirng: name of activation function, one for all layers. Choose from []"linear", "relu", "sigmoid", "tanh"]
 		@validation, double from [0, 1]: 
 		"""
-		self.L = len(layers)				# number of layers
-		self.n = layers.copy()				# an array with the number of units in each layer (including the input and output layers)
-		self.epochs = epochs				# number of training epochs
-		self.learning_rate = learning_rate	# GD learning rate
-		self.momentum = momentum			# 
-		self.validation = validation		# number of how to split training and validation data
-		self.losses = np.zeros((self.epochs, 2))
+		self.L = len(layers)						# number of layers
+		self.n = layers.copy()						# an array with the number of units in each layer (including the input and output layers)
+		self.epochs = epochs						# number of training epochs
+		self.learning_rate = learning_rate			# GD learning rate
+		self.momentum = momentum					# momentum 
+		self.validation = validation				# number of how to split training and validation data
+		self.losses = np.zeros((self.epochs, 2))	# array of losses per epoch
 
-		self.xi = []	# an array of arrays for the activations (ξ)
-		self.w = []		# an array of matrices for the weights (w)		
-		self.h = [None]*self.L				# an array of arrays for the fields (h)
-		self.theta = []			# an array of arrays for the thresholds (θ)
-		self.delta = []			# an array of arrays for the propagation of errors (Δ)
-		self.d_w = []			# an array of matrices for the changes of the weights (δw)
-		self.d_theta = []		# an array of arrays for the changes of the weights (δθ)
-		self.d_w_prev = []		# an array of matrices for the previous changes of the weights, used for the momentum term (δw^(prev))
-		self.d_theta_prev = []	# an array of arrays for the previous changes of the thresholds, used for the momentum term (δθ^(prev))
-		self.fact = fact		# the name of the activation function that it will be used. It can be one of these four: sigmoid, relu, linear, tanh.
+		self.xi = []								# an array of arrays for the activations (ξ)
+		self.w = []									# an array of matrices for the weights (w)		
+		self.h = [None]*self.L						# an array of arrays for the fields (h)
+		self.theta = []								# an array of arrays for the thresholds (θ)
+		self.delta = []								# an array of arrays for the propagation of errors (Δ)
+		self.d_w = []								# an array of matrices for the changes of the weights (δw)
+		self.d_theta = []							# an array of arrays for the changes of the weights (δθ)
+		self.d_w_prev = []							# an array of matrices for the previous changes of the weights, used for the momentum term (δw^(prev))
+		self.d_theta_prev = []						# an array of arrays for the previous changes of the thresholds, used for the momentum term (δθ^(prev))
+		self.fact = fact							# the name of the activation function that it will be used. It can be one of these four: sigmoid, relu, linear, tanh.
 	
 	def fit(self, X, y):
 		"""
@@ -119,6 +123,8 @@ class NeuralNet:
 			valid_loss = 0
 			train_correct = 0
 			valid_correct = 0
+			train_predicted = []
+			valid_predicted = []
 
 			# train
 			for sample in range(n_samples):
@@ -128,10 +134,10 @@ class NeuralNet:
 				for l in range(1, self.L):
 					a_t[l] = self.w[l] @ z_t[l-1] - self.theta[l]
 					z_t[l] = activation_function.forward(a_t[l]) if l != self.L-1 else output_function.forward(a_t[l])
-				
+					
+				train_predicted.append(np.round(z_t[-1]))
 				train_loss += loss_function.forward(z_t[-1], y[sample])
-				train_correct = train_correct + 1 if np.round(z_t[-1]) == y[sample] else train_correct
-			self.losses[epoch, 0] = train_loss / train_correct
+			self.losses[epoch, 0] = train_loss / n_samples
 
 			# validation
 			for sample in range(v_samples):
@@ -142,12 +148,11 @@ class NeuralNet:
 					a_v[l] = self.w[l] @ z_v[l-1] - self.theta[l]
 					z_v[l] = activation_function.forward(a_v[l]) if l != self.L-1 else output_function.forward(a_v[l])
 				
+				valid_predicted.append(np.round(z_t[-1]))
 				valid_loss += loss_function.forward(z_v[-1], y_valid[sample])
-				valid_correct = valid_correct + 1 if np.round(z_v[-1]) == y_valid[sample] else valid_correct
-			self.losses[epoch, 1] = valid_loss / valid_correct
+			self.losses[epoch, 1] = valid_loss / v_samples
 
-			# print(f"train loss: {train_loss}\ttrain average: {train_loss/n_samples}\tvalid loss: {valid_loss}\tvalid average: {valid_loss/v_samples}")
-			print(f"train loss: {train_loss[0]:.3f}\ttrain accuracy: {train_correct/n_samples:.3f}\tvalid loss: {valid_loss[0]:.3f}\tvalid accuracy: {valid_correct/v_samples:.3f}")
+			print(f"train loss: {self.losses[epoch, 0]:.3f}\tvalidation loss: {self.losses[epoch, 1]:.3f}\tMSE: {mean_squared_error(y_valid, valid_predicted):.3f}\tMAE: {mean_absolute_error(y_valid, valid_predicted):.3f}\tMAPE: {mean_absolute_percentage_error(y_valid, valid_predicted):.3f}")
 		
 	def predict(self, X):
 		n_samples, n_features = X.shape
